@@ -11,9 +11,10 @@ import (
 )
 
 // this is a specific function signature (name can be changed). Have to use if you want to define a http handler in the way that go standard library expects
-func (apiConf *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
+func (apiConf *apiConfig) handlerCreateFeed(w http.ResponseWriter, r *http.Request, user database.User) {
 	type parameters struct {
 		Name string `json:"name"`
+		URL  string `json:"url"`
 	}
 	decoder := json.NewDecoder(r.Body)
 
@@ -24,21 +25,30 @@ func (apiConf *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	user, err := apiConf.DB.CreateUser(r.Context(), database.CreateUserParams{
+	feed, err := apiConf.DB.CreateFeed(r.Context(), database.CreateFeedParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
 		Name:      params.Name,
+		Url:       params.URL,
+		UserID:    user.ID,
 	})
 
 	if err != nil {
-		respondWithError(w, 400, fmt.Sprintf("Couldn't create user:%v", err))
+		respondWithError(w, 400, fmt.Sprintf("Couldn't create feed:%v", err))
 		return
 	}
 
-	respondWithJSON(w, 201, databaseUserToUser(user))
+	respondWithJSON(w, 201, databaseFeedToFeed(feed))
 }
 
-func (apiConf *apiConfig) handlerGetUser(w http.ResponseWriter, r *http.Request, user database.User) {
-	respondWithJSON(w, 200, databaseUserToUser(user))
+func (apiConf *apiConfig) handlerGetFeeds(w http.ResponseWriter, r *http.Request) {
+	feeds, err := apiConf.DB.GetFeeds(r.Context())
+
+	if err != nil {
+		respondWithError(w, 400, fmt.Sprintf("Couldn't get feeds:%v", err))
+		return
+	}
+
+	respondWithJSON(w, 201, databaseFeedsToFeeds(feeds))
 }
